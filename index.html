@@ -6,11 +6,15 @@
 </head>
 <body>
   <h2>Familienseite</h2>
+
+  <!-- Login-Formular -->
   <form onsubmit="login(event)">
     <input id="user" placeholder="Benutzername"><br>
     <input id="pass" type="password" placeholder="Passwort"><br>
     <button type="submit">Login</button>
   </form>
+
+  <!-- Chat-Bereich -->
   <div id="chat" style="display:none;">
     <h3>Chat</h3>
     <div id="messages" style="border:1px solid gray;height:150px;overflow:auto;"></div>
@@ -18,11 +22,20 @@
     <button onclick="sendMsg()">Senden</button>
   </div>
 
+  <!-- Admin-Panel -->
+  <div id="adminPanel" style="display:none; margin-top:20px;">
+    <h3>👑 Admin: Benutzerverwaltung</h3>
+    <input id="newUser" placeholder="Neuer Benutzername">
+    <input id="newPass" type="password" placeholder="Passwort">
+    <button onclick="addUser()">Benutzer hinzufügen</button>
+  </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
     let username = null;
 
+    // Login senden
     function login(e) {
       e.preventDefault();
       socket.emit("login", {
@@ -31,10 +44,48 @@
       });
     }
 
+    // Login erfolgreich
     socket.on("login_success", (u) => {
       username = u;
       document.querySelector("form").style.display = "none";
       document.getElementById("chat").style.display = "block";
+
+      if (username === "admin") {
+        document.getElementById("adminPanel").style.display = "block";
+      }
+    });
+
+    // Login fehlgeschlagen
+    socket.on("login_failed", () => alert("❌ Login fehlgeschlagen"));
+
+    // Nachricht senden
+    function sendMsg() {
+      socket.emit("chat", { user: username, text: document.getElementById("msg").value });
+      document.getElementById("msg").value = "";
+    }
+
+    // Nachricht empfangen
+    socket.on("chat", (msg) => {
+      let div = document.getElementById("messages");
+      div.innerHTML += "<div><b>" + msg.user + ":</b> " + msg.text + "</div>";
+      div.scrollTop = div.scrollHeight;
+    });
+
+    // Benutzer hinzufügen (Admin)
+    function addUser() {
+      const newUser = document.getElementById("newUser").value;
+      const newPass = document.getElementById("newPass").value;
+      if (!newUser || !newPass) {
+        alert("Bitte Benutzername und Passwort eingeben!");
+        return;
+      }
+      socket.emit("add_user", { username: newUser, password: newPass });
+      document.getElementById("newUser").value = "";
+      document.getElementById("newPass").value = "";
+    }
+  </script>
+</body>
+</html>      document.getElementById("chat").style.display = "block";
     });
 
     socket.on("login_failed", () => alert("❌ Login fehlgeschlagen"));
