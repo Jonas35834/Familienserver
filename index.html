@@ -85,21 +85,4 @@
     }
   </script>
 </body>
-</html>      document.getElementById("chat").style.display = "block";
-    });
-
-    socket.on("login_failed", () => alert("❌ Login fehlgeschlagen"));
-
-    function sendMsg() {
-      socket.emit("chat", { user: username, text: document.getElementById("msg").value });
-      document.getElementById("msg").value = "";
-    }
-
-    socket.on("chat", (msg) => {
-      let div = document.getElementById("messages");
-      div.innerHTML += "<div><b>" + msg.user + ":</b> " + msg.text + "</div>";
-      div.scrollTop = div.scrollHeight;
-    });
-  </script>
-</body>
 </html>
