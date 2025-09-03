@@ -114,37 +114,148 @@
       socket.emit("login", {
         username: document.getElementById("user").value,
         password: document.getElementById("pass").value
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Familienseite</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url("https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=1600&q=80") no-repeat center center fixed;
+      background-size: cover;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      color: #333;
+    }
+
+    h2 {
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    form, #chat, #adminPanel {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px auto;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      text-align: left;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    button {
+      background: #4caf50;
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    #messages {
+      border: 1px solid #ddd;
+      height: 200px;
+      overflow-y: auto;
+      padding: 10px;
+      background: #fafafa;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    #messages div {
+      padding: 5px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid #eee;
+    }
+
+    #messages div b {
+      color: #4caf50;
+    }
+
+    #adminPanel h3 {
+      margin-top: 0;
+      color: #e91e63;
+    }
+  </style>
+</head>
+<body>
+  <h2>🌸 Willkommen auf unserer Familienseite 🌸</h2>
+
+  <!-- Login-Formular -->
+  <form onsubmit="login(event)">
+    <input id="user" placeholder="Benutzername"><br>
+    <input id="pass" type="password" placeholder="Passwort"><br>
+    <button type="submit">Login</button>
+  </form>
+
+  <!-- Chat-Bereich -->
+  <div id="chat" style="display:none;">
+    <h3>💬 Chat</h3>
+    <div id="messages"></div>
+    <input id="msg" placeholder="Nachricht">
+    <button onclick="sendMsg()">Senden</button>
+  </div>
+
+  <!-- Admin-Panel -->
+  <div id="adminPanel" style="display:none; margin-top:20px;">
+    <h3>👑 Admin: Benutzerverwaltung</h3>
+    <input id="newUser" placeholder="Neuer Benutzername">
+    <input id="newPass" type="password" placeholder="Passwort">
+    <button onclick="addUser()">Benutzer hinzufügen</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let username = null;
+
+    function login(e) {
+      e.preventDefault();
+      socket.emit("login", {
+        username: document.getElementById("user").value,
+        password: document.getElementById("pass").value
       });
     }
 
-    // Login erfolgreich
     socket.on("login_success", (u) => {
       username = u;
       document.querySelector("form").style.display = "none";
       document.getElementById("chat").style.display = "block";
-
       if (username === "admin") {
         document.getElementById("adminPanel").style.display = "block";
       }
     });
 
-    // Login fehlgeschlagen
     socket.on("login_failed", () => alert("❌ Login fehlgeschlagen"));
 
-    // Nachricht senden
     function sendMsg() {
       socket.emit("chat", { user: username, text: document.getElementById("msg").value });
       document.getElementById("msg").value = "";
     }
 
-    // Nachricht empfangen
     socket.on("chat", (msg) => {
       let div = document.getElementById("messages");
       div.innerHTML += "<div><b>" + msg.user + ":</b> " + msg.text + "</div>";
       div.scrollTop = div.scrollHeight;
     });
 
-    // Benutzer hinzufügen (Admin)
     function addUser() {
       const newUser = document.getElementById("newUser").value;
       const newPass = document.getElementById("newPass").value;
