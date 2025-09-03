@@ -104,16 +104,6 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    let username = null;
-
-    // Login senden
-    function login(e) {
-      e.preventDefault();
-      socket.emit("login", {
-        username: document.getElementById("user").value,
-        password: document.getElementById("pass").value
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -122,7 +112,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: url("https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&w=1600&q=80") no-repeat center center fixed;
+      background: url("IMG-20250827-WA0017.jpg") no-repeat center center fixed;
       background-size: cover;
       margin: 0;
       padding: 20px;
