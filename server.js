@@ -9,7 +9,8 @@ let users = {
   "admin": "admin"
 };
 
-app.use(express.static("public"));
+// Statische Dateien direkt aus dem Projekt-Hauptordner laden
+app.use(express.static(__dirname));
 
 io.on("connection", (socket) => {
   console.log("🔗 Neuer Benutzer verbunden");
