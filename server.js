@@ -2,7 +2,6 @@ const express = require("express");
 const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
-const bcrypt = require("bcrypt");
 const fs = require("fs");
 const path = require("path");
 
@@ -13,7 +12,8 @@ let users = {};
 if (fs.existsSync(usersFile)) {
   users = JSON.parse(fs.readFileSync(usersFile, "utf-8"));
 } else {
-  users = {};
+  users = { "admin": "admin" }; // Standard-Admin
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), "utf-8");
 }
 
 // Funktion zum Speichern in JSON-Datei
@@ -27,18 +27,15 @@ app.use(express.static(__dirname));
 io.on("connection", (socket) => {
   console.log("🔗 Neuer Benutzer verbunden");
 
-  // Login
-  socket.on("login", async (data) => {
+  // Login (Klartext)
+  socket.on("login", (data) => {
     const { username, password } = data;
 
-    if (users[username]) {
-      const valid = await bcrypt.compare(password, users[username]);
-      if (valid) {
-        socket.username = username;
-        socket.emit("login_success", username);
-        console.log(`✅ Login erfolgreich: ${username}`);
-        return;
-      }
+    if (users[username] && users[username] === password) {
+      socket.username = username;
+      socket.emit("login_success", username);
+      console.log(`✅ Login erfolgreich: ${username}`);
+      return;
     }
 
     socket.emit("login_failed");
@@ -51,15 +48,14 @@ io.on("connection", (socket) => {
     io.emit("chat", msg);
   });
 
-  // Benutzer hinzufügen
-  socket.on("add_user", async (data) => {
+  // Benutzer hinzufügen (Klartext)
+  socket.on("add_user", (data) => {
     if (socket.username === "admin") {
       if (users[data.username]) {
         socket.emit("chat", { user: "System", text: `⚠️ Benutzer '${data.username}' existiert bereits.` });
       } else {
-        const hashed = await bcrypt.hash(data.password, 10);
-        users[data.username] = hashed;
-        saveUsers(); // ⬅️ in Datei speichern
+        users[data.username] = data.password;
+        saveUsers();
         socket.emit("chat", { user: "System", text: `✅ Benutzer '${data.username}' hinzugefügt.` });
         console.log(`👤 Neuer Benutzer hinzugefügt: ${data.username}`);
       }
@@ -73,7 +69,7 @@ io.on("connection", (socket) => {
     if (socket.username === "admin") {
       if (users[data.username]) {
         delete users[data.username];
-        saveUsers(); // ⬅️ in Datei speichern
+        saveUsers();
         socket.emit("chat", { user: "System", text: `✅ Benutzer '${data.username}' wurde gelöscht.` });
         console.log(`🗑️ Benutzer gelöscht: ${data.username}`);
       } else {
