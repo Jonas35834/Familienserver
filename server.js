@@ -1,4 +1,5 @@
 const express = require("express");
+conconst express = require("express");
 const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
@@ -22,7 +23,9 @@ let messages = [];
 if (fs.existsSync(messagesFile)) {
   messages = JSON.parse(fs.readFileSync(messagesFile, "utf-8"));
 } else {
-  messages = [];
+  messages = [
+    { user: "System", text: "👋 Willkommen im Familienchat!", time: new Date().toISOString() }
+  ];
   fs.writeFileSync(messagesFile, JSON.stringify(messages, null, 2), "utf-8");
 }
 
@@ -30,14 +33,16 @@ if (fs.existsSync(messagesFile)) {
 function saveUsers() {
   fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), "utf-8");
 }
-
 function saveMessages() {
   fs.writeFileSync(messagesFile, JSON.stringify(messages, null, 2), "utf-8");
 }
 
-// Statische Dateien
+// Statische Dateien ausliefern (index.html + CSS + Bilder + JS)
 app.use(express.static(__dirname));
 
+// ⚠️ KEIN zweites app.get("/") hier, sonst doppelte Anzeige!
+
+// Socket.IO
 io.on("connection", (socket) => {
   console.log("🔗 Neuer Benutzer verbunden");
 
@@ -49,7 +54,7 @@ io.on("connection", (socket) => {
       socket.username = username;
       socket.emit("login_success", username);
 
-      // Alle bisherigen Nachrichten senden
+      // Gespeicherte Nachrichten laden
       socket.emit("load_messages", messages);
 
       console.log(`✅ Login erfolgreich: ${username}`);
@@ -97,6 +102,16 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("disconnect", () => {
+    console.log("❎ Benutzer hat die Verbindung getrennt");
+  });
+});
+
+// Server starten
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => {
+  console.log(`🚀 Server läuft auf Port ${PORT}`);
+});
   socket.on("disconnect", () => {
     console.log("❎ Benutzer hat die Verbindung getrennt");
   });
