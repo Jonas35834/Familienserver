@@ -116,6 +116,124 @@
     const socket = io();
     let username = "";
 
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Familienchat</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: url("IMG-20250827-WA0017.jpg") no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .overlay {
+      background: rgba(0, 0, 0, 0.6);
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0; left: 0;
+      z-index: -1;
+    }
+
+    #login, #chat {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      width: 350px;
+      text-align: center;
+    }
+
+    input, button {
+      width: 90%;
+      padding: 10px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    button {
+      background: #007BFF;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    #messages {
+      height: 300px;
+      overflow-y: auto;
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
+    .msg {
+      padding: 8px 12px;
+      border-radius: 12px;
+      margin: 5px 0;
+      max-width: 70%;
+      word-wrap: break-word;
+    }
+
+    .msg.you {
+      background: #007BFF;
+      color: white;
+      margin-left: auto;
+    }
+
+    .msg.other {
+      background: #e0e0e0;
+      color: black;
+      margin-right: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay"></div>
+
+  <!-- Login -->
+  <div id="login">
+    <h2>🔑 Login</h2>
+    <input id="username" placeholder="Benutzername"><br>
+    <input id="password" type="password" placeholder="Passwort"><br>
+    <button onclick="login()">Login</button>
+  </div>
+
+  <!-- Chat -->
+  <div id="chat" style="display:none;">
+    <h2>💬 Familienchat</h2>
+    <div id="messages"></div>
+    <input id="msg" placeholder="Nachricht eingeben...">
+    <button onclick="sendMsg()">Senden</button>
+    <div id="adminPanel" style="display:none; margin-top: 15px;">
+      <h3>⚙️ Admin Panel</h3>
+      <input id="newUser" placeholder="Neuer Benutzer">
+      <input id="newPass" type="password" placeholder="Passwort">
+      <button onclick="addUser()">➕ Hinzufügen</button>
+      <input id="delUser" placeholder="Benutzer löschen">
+      <button onclick="deleteUser()">🗑️ Löschen</button>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let username = "";
+
     function login() {
       socket.emit("login", {
         username: document.getElementById("username").value,
@@ -148,6 +266,20 @@
       bubble.classList.add(msg.user === username ? "you" : "other");
       bubble.innerHTML = `<b>${msg.user}:</b> ${msg.text}`;
       div.appendChild(bubble);
+      div.scrollTop = div.scrollHeight;
+    });
+
+    // 👉 Neue Funktion: Nachrichten beim Login laden
+    socket.on("load_messages", (msgs) => {
+      let div = document.getElementById("messages");
+      div.innerHTML = "";
+      msgs.forEach((msg) => {
+        let bubble = document.createElement("div");
+        bubble.classList.add("msg");
+        bubble.classList.add(msg.user === username ? "you" : "other");
+        bubble.innerHTML = `<b>${msg.user}:</b> ${msg.text}`;
+        div.appendChild(bubble);
+      });
       div.scrollTop = div.scrollHeight;
     });
 
