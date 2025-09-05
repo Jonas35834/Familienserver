@@ -2,46 +2,64 @@ const express = require("express");
 const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
+const bcrypt = require("bcrypt");
+const fs = require("fs");
+const path = require("path");
 
-// Benutzer speichern (einfaches In-Memory-Objekt)
-// 👉 Admin-Zugang: Benutzername: admin / Passwort: admin
-let users = {
-  "admin": "admin"
-};
+const usersFile = path.join(__dirname, "users.json");
 
-// Statische Dateien direkt aus dem Projekt-Hauptordner laden
+// Nutzer beim Start einlesen
+let users = {};
+if (fs.existsSync(usersFile)) {
+  users = JSON.parse(fs.readFileSync(usersFile, "utf-8"));
+} else {
+  users = {};
+}
+
+// Funktion zum Speichern in JSON-Datei
+function saveUsers() {
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), "utf-8");
+}
+
+// Statische Dateien laden
 app.use(express.static(__dirname));
 
 io.on("connection", (socket) => {
   console.log("🔗 Neuer Benutzer verbunden");
 
   // Login
-  socket.on("login", (data) => {
+  socket.on("login", async (data) => {
     const { username, password } = data;
 
-    if (users[username] && users[username] === password) {
-      socket.username = username;
-      socket.emit("login_success", username);
-      console.log(`✅ Login erfolgreich: ${username}`);
-    } else {
-      socket.emit("login_failed");
-      console.log(`❌ Fehlgeschlagener Login für Benutzer: ${username}`);
+    if (users[username]) {
+      const valid = await bcrypt.compare(password, users[username]);
+      if (valid) {
+        socket.username = username;
+        socket.emit("login_success", username);
+        console.log(`✅ Login erfolgreich: ${username}`);
+        return;
+      }
     }
+
+    socket.emit("login_failed");
+    console.log(`❌ Fehlgeschlagener Login für Benutzer: ${username}`);
   });
 
-  // Chat-Nachrichten
+  // Chat
   socket.on("chat", (msg) => {
-    if (!socket.username) return; // Nur eingeloggt chatten
+    if (!socket.username) return;
     io.emit("chat", msg);
   });
 
-  // Benutzer hinzufügen (nur Admin)
-  socket.on("add_user", (data) => {
+  // Benutzer hinzufügen
+  socket.on("add_user", async (data) => {
     if (socket.username === "admin") {
       if (users[data.username]) {
         socket.emit("chat", { user: "System", text: `⚠️ Benutzer '${data.username}' existiert bereits.` });
       } else {
-        users[data.username] = data.password;
+        const hashed = await bcrypt.hash(data.password, 10);
+        users[data.username] = hashed;
+        saveUsers(); // ⬅️ in Datei speichern
         socket.emit("chat", { user: "System", text: `✅ Benutzer '${data.username}' hinzugefügt.` });
         console.log(`👤 Neuer Benutzer hinzugefügt: ${data.username}`);
       }
@@ -50,11 +68,12 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Benutzer löschen (nur Admin)
+  // Benutzer löschen
   socket.on("delete_user", (data) => {
     if (socket.username === "admin") {
       if (users[data.username]) {
         delete users[data.username];
+        saveUsers(); // ⬅️ in Datei speichern
         socket.emit("chat", { user: "System", text: `✅ Benutzer '${data.username}' wurde gelöscht.` });
         console.log(`🗑️ Benutzer gelöscht: ${data.username}`);
       } else {
