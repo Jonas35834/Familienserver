@@ -1,159 +1,133 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <title>Familienseite</title>
+  <meta charset="UTF-8">
+  <title>Familienchat</title>
+  <script src="/socket.io/socket.io.js"></script>
   <style>
-    /* Hintergrund + Overlay */
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      height: 100vh;
+      font-family: Arial, sans-serif;
+      background: url("IMG-20250827-WA0017.jpg") no-repeat center center fixed;
+      background-size: cover;
       display: flex;
       justify-content: center;
       align-items: center;
-      flex-direction: column;
-      color: #333;
-      position: relative;
-      overflow: hidden;
+      height: 100vh;
     }
 
-    body::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
+    .overlay {
+      background: rgba(0, 0, 0, 0.6);
       width: 100%;
       height: 100%;
-      background: url("IMG-20250827-WA0017.jpg") no-repeat center center fixed;
-      background-size: cover;
-      z-index: -2;
-    }
-
-    body::after {
-      content: "";
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5); /* Dunkles Overlay */
+      top: 0; left: 0;
       z-index: -1;
     }
 
-    h2 {
-      color: white;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-      margin-bottom: 20px;
-    }
-
-    #loginForm, #chat, #adminPanel {
+    #login, #chat {
       background: rgba(255, 255, 255, 0.9);
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 20px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      text-align: left;
-      margin: 10px 0;
-      position: relative;
-      z-index: 1;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      width: 350px;
+      text-align: center;
     }
 
     input, button {
+      width: 90%;
       padding: 10px;
-      margin: 5px 0;
-      width: 100%;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-sizing: border-box;
+      margin: 8px 0;
+      border: none;
+      border-radius: 6px;
       font-size: 14px;
     }
 
     button {
-      background: #4caf50;
+      background: #007BFF;
       color: white;
-      font-weight: bold;
-      border: none;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.3s;
     }
 
     button:hover {
-      background: #45a049;
+      background: #0056b3;
     }
 
     #messages {
-      border: 1px solid #ddd;
-      height: 200px;
+      height: 300px;
       overflow-y: auto;
+      background: #f4f4f4;
       padding: 10px;
-      background: #fafafa;
-      border-radius: 5px;
+      border-radius: 8px;
       margin-bottom: 10px;
+      text-align: left;
     }
 
-    #messages div {
-      padding: 5px;
-      margin-bottom: 4px;
-      border-bottom: 1px solid #eee;
+    .msg {
+      padding: 8px 12px;
+      border-radius: 12px;
+      margin: 5px 0;
+      max-width: 70%;
+      word-wrap: break-word;
     }
 
-    #messages div b {
-      color: #4caf50;
+    .msg.you {
+      background: #007BFF;
+      color: white;
+      margin-left: auto;
     }
 
-    #adminPanel h3 {
-      margin-top: 0;
-      color: #e91e63;
+    .msg.other {
+      background: #e0e0e0;
+      color: black;
+      margin-right: auto;
     }
   </style>
 </head>
 <body>
-  <h2>🌸 Willkommen auf unserer Familienseite 🌸</h2>
+  <div class="overlay"></div>
 
-  <!-- Login-Formular -->
-  <form id="loginForm" onsubmit="login(event)" style="display:block;">
-    <input id="user" placeholder="Benutzername"><br>
-    <input id="pass" type="password" placeholder="Passwort"><br>
-    <button type="submit">Login</button>
-  </form>
+  <!-- Login -->
+  <div id="login">
+    <h2>🔑 Login</h2>
+    <input id="username" placeholder="Benutzername"><br>
+    <input id="password" type="password" placeholder="Passwort"><br>
+    <button onclick="login()">Login</button>
+  </div>
 
-  <!-- Chat-Bereich -->
+  <!-- Chat -->
   <div id="chat" style="display:none;">
-    <h3>💬 Chat</h3>
+    <h2>💬 Familienchat</h2>
     <div id="messages"></div>
-    <input id="msg" placeholder="Nachricht">
+    <input id="msg" placeholder="Nachricht eingeben...">
     <button onclick="sendMsg()">Senden</button>
+    <div id="adminPanel" style="display:none; margin-top: 15px;">
+      <h3>⚙️ Admin Panel</h3>
+      <input id="newUser" placeholder="Neuer Benutzer">
+      <input id="newPass" type="password" placeholder="Passwort">
+      <button onclick="addUser()">➕ Hinzufügen</button>
+      <input id="delUser" placeholder="Benutzer löschen">
+      <button onclick="deleteUser()">🗑️ Löschen</button>
+    </div>
   </div>
 
-  <!-- Admin-Panel -->
-  <div id="adminPanel" style="display:none;">
-    <h3>👑 Admin: Benutzerverwaltung</h3>
-    <input id="newUser" placeholder="Neuer Benutzername">
-    <input id="newPass" type="password" placeholder="Passwort">
-    <button onclick="addUser()">Benutzer hinzufügen</button>
-  </div>
-
-  <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    let username = null;
+    let username = "";
 
-    function login(e) {
-      e.preventDefault();
+    function login() {
       socket.emit("login", {
-        username: document.getElementById("user").value,
-        password: document.getElementById("pass").value
+        username: document.getElementById("username").value,
+        password: document.getElementById("password").value
       });
     }
 
-    socket.on("login_success", (u) => {
-      username = u;
-      document.getElementById("loginForm").style.display = "none";
+    socket.on("login_success", (user) => {
+      username = user;
+      document.getElementById("login").style.display = "none";
       document.getElementById("chat").style.display = "block";
-
-      if (username === "admin") {
+      if (user === "admin") {
         document.getElementById("adminPanel").style.display = "block";
       }
     });
@@ -161,26 +135,33 @@
     socket.on("login_failed", () => alert("❌ Login fehlgeschlagen"));
 
     function sendMsg() {
-      socket.emit("chat", { user: username, text: document.getElementById("msg").value });
-      document.getElementById("msg").value = "";
+      const input = document.getElementById("msg");
+      if (input.value.trim() === "") return;
+      socket.emit("chat", { user: username, text: input.value });
+      input.value = "";
     }
 
     socket.on("chat", (msg) => {
       let div = document.getElementById("messages");
-      div.innerHTML += "<div><b>" + msg.user + ":</b> " + msg.text + "</div>";
+      let bubble = document.createElement("div");
+      bubble.classList.add("msg");
+      bubble.classList.add(msg.user === username ? "you" : "other");
+      bubble.innerHTML = `<b>${msg.user}:</b> ${msg.text}`;
+      div.appendChild(bubble);
       div.scrollTop = div.scrollHeight;
     });
 
     function addUser() {
-      const newUser = document.getElementById("newUser").value;
-      const newPass = document.getElementById("newPass").value;
-      if (!newUser || !newPass) {
-        alert("Bitte Benutzername und Passwort eingeben!");
-        return;
-      }
-      socket.emit("add_user", { username: newUser, password: newPass });
-      document.getElementById("newUser").value = "";
-      document.getElementById("newPass").value = "";
+      socket.emit("add_user", {
+        username: document.getElementById("newUser").value,
+        password: document.getElementById("newPass").value
+      });
+    }
+
+    function deleteUser() {
+      socket.emit("delete_user", {
+        username: document.getElementById("delUser").value
+      });
     }
   </script>
 </body>
