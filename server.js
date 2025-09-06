@@ -1,5 +1,4 @@
 const express = require("express");
-conconst express = require("express");
 const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
@@ -39,8 +38,6 @@ function saveMessages() {
 
 // Statische Dateien ausliefern (index.html + CSS + Bilder + JS)
 app.use(express.static(__dirname));
-
-// ⚠️ KEIN zweites app.get("/") hier, sonst doppelte Anzeige!
 
 // Socket.IO
 io.on("connection", (socket) => {
@@ -102,16 +99,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("disconnect", () => {
-    console.log("❎ Benutzer hat die Verbindung getrennt");
-  });
-});
-
-// Server starten
-const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
-  console.log(`🚀 Server läuft auf Port ${PORT}`);
-});
   socket.on("disconnect", () => {
     console.log("❎ Benutzer hat die Verbindung getrennt");
   });
